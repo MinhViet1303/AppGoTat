@@ -62,6 +62,7 @@ def check_for_changes():
         pass
     except OSError:
         pass
+    
 def is_blacklisted():
     try:
         active_window = gw.getActiveWindow()
@@ -82,9 +83,9 @@ def on_release(key):
 
 def on_press(key):
     global current_word
-    if is_blacklisted(): # Kiểm tra blacklist trước khi thay thế
+    if is_blacklisted():
         return
-    
+
     try:
         current_word += key.char
     except AttributeError:
@@ -97,13 +98,32 @@ def on_press(key):
 
     for abbr, replacement in abbreviations.items():
         if current_word.endswith(abbr):
-            for _ in range(len(abbr)):
-                pyautogui.press('backspace')
+            # 1. Bôi đen từ viết tắt
+            pyautogui.keyDown('ctrl')
+            pyautogui.keyDown('shiftleft')
+            pyautogui.keyDown('shiftright')
+            pyautogui.press('left')
+            pyautogui.keyUp('shiftleft')
+            pyautogui.keyUp('shiftright') 
+            pyautogui.keyUp('ctrl')
             time.sleep(0.05)
-            pyperclip.copy(replacement)
-            pyautogui.hotkey('ctrl', 'v')
-            current_word = ""
-            break
+
+            # 2. Sao chép phần văn bản đã bôi đen vào clipboard
+            pyautogui.hotkey('ctrl', 'c')
+            time.sleep(0.05)
+            selected_text = pyperclip.paste()
+
+            # 3. Kiểm tra xem văn bản đã bôi đen có khớp với abbr hay không
+            if selected_text == abbr:
+                # 4. Nếu khớp, dán nội dung thay thế
+                pyperclip.copy(replacement)
+                pyautogui.hotkey('ctrl', 'v')
+                current_word = ""
+                break
+            else:
+                # 5. Nếu không khớp, hoàn tác việc bôi đen
+                for _ in range(len(abbr)):
+                    pyautogui.press('right') # Di chuyển con trỏ sang phải để bỏ bôi đen
 
 def run_replace_function():
     global last_modified, last_size
